@@ -88,7 +88,7 @@ class GridManager():
 
 
 vtp_path = 'data/3d_objects/grid.vtp'
-directory_path = 'data/INCLUDE/INCLUDE'
+directory_path = 'data/INCLUDE'
 grid_name = 'DynamicModel'
 
 
