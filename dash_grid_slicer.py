@@ -54,7 +54,8 @@ class GridManager():
 
         os.remove(grid_file_path)
 
-        self.GridData = model.GRDECL_Data
+        self.NX, self.NY, self.NZ = model.GRDECL_Data.NX, model.GRDECL_Data.NY, model.GRDECL_Data.NZ
+        self.properties = list(model.GRDECL_Data.SpatialDatas.keys())
 
     def create_mesh(self, vtp_path):
         self.mesh = pv.read(vtp_path).extract_geometry()
@@ -65,7 +66,7 @@ class GridManager():
 
         # Обрезка по срезам
         actnum = mesh["ACTNUM"][::6]
-        actnum = actnum.reshape((self.GridData.NX, self.GridData.NY, self.GridData.NZ), order="F")
+        actnum = actnum.reshape((self.NX, self.NY, self.NZ), order="F")
         result_actnum = np.zeros_like(actnum)
       
         result_actnum[slice_x, :, :] = actnum[slice_x, :, :]
@@ -158,8 +159,8 @@ app.layout = dbc.Container(
             "scale_factor": 20,
             "preset": "erdc_rainbow_bright",
             "property": "PORO",
-            "x_slices": [i for i in range(Grid_Manager.GridData.NX)],
-            "y_slices": [i for i in range(Grid_Manager.GridData.NY)],
+            "x_slices": [i for i in range(Grid_Manager.NX)],
+            "y_slices": [i for i in range(Grid_Manager.NY)],
             "show_cube_axes": [],
             "edge_visibility": []
         }),
@@ -211,7 +212,7 @@ app.layout = dbc.Container(
                                                         id="dropdown-property",
                                                         options=[
                                                             {"label": key, "value": key}
-                                                            for key in Grid_Manager.GridData.SpatialDatas.keys()
+                                                            for key in Grid_Manager.properties
                                                             if key != "ACTNUM"
                                                         ],
                                                         value="PORO",
@@ -246,9 +247,9 @@ app.layout = dbc.Container(
                                                         id="x-slices",
                                                         options=[
                                                             {"label": str(i), "value": i}
-                                                            for i in range(Grid_Manager.GridData.NX)
+                                                            for i in range(Grid_Manager.NX)
                                                         ],
-                                                        value=[i for i in range(Grid_Manager.GridData.NX)],
+                                                        value=[i for i in range(Grid_Manager.NX)],
                                                         inline=True,
                                                     ),
                                                     dbc.Button(
@@ -280,9 +281,9 @@ app.layout = dbc.Container(
                                                         id="y-slices",
                                                         options=[
                                                             {"label": str(i), "value": i}
-                                                            for i in range(Grid_Manager.GridData.NY-1)
+                                                            for i in range(Grid_Manager.NY-1)
                                                         ],
-                                                        value=[i for i in range(Grid_Manager.GridData.NY-1)],
+                                                        value=[i for i in range(Grid_Manager.NY-1)],
                                                         inline=True,
                                                     ),
                                                     dbc.Button(
@@ -364,11 +365,11 @@ def manage_slices(select_x, deselect_x, select_y, deselect_y):
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     if triggered_id == "select-all-x":
-        return [i for i in range(Grid_Manager.GridData.NX)], dash.no_update
+        return [i for i in range(Grid_Manager.NX)], dash.no_update
     elif triggered_id == "deselect-all-x":
         return [], dash.no_update
     elif triggered_id == "select-all-y":
-        return dash.no_update, [i for i in range(Grid_Manager.GridData.NY)]
+        return dash.no_update, [i for i in range(Grid_Manager.NY)]
     elif triggered_id == "deselect-all-y":
         return dash.no_update, []
 
