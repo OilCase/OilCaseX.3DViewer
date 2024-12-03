@@ -1,9 +1,9 @@
 import dash
 import dash_vtk
 import dash_bootstrap_components as dbc
-import dash_html_components as html
-import dash_core_components as dcc
+from dash import html, dcc
 from dash.dependencies import Input, Output, State
+
 
 import random
 import os
@@ -11,12 +11,9 @@ import numpy as np
 import pyvista as pv
 
 from vtk.util.numpy_support import vtk_to_numpy
-# import webbrowser
 from dash_vtk.utils import presets
 
 from utils.PyGRDECL.GRDECL2VTK import GeologyModel
-
-
 
 
 def toDropOption(name):
@@ -37,10 +34,8 @@ class GridManager():
             with open(directory_path + "/" + grid_name + ".GRDECL") as infile:
                 outfile.write(infile.read().replace('NOECHO', ''))
                 infile.close()
-                
+
             outfile.close()
-
-
 
         vtp_path = os.path.join('data/3d_objects', f'grid.vtp')
 
@@ -62,15 +57,15 @@ class GridManager():
 
     def update_grid_geometry(self, prop="PORO", scalar=20, slice_x=None, slice_y=None):
         mesh = self.mesh.copy()
-        mesh.points[:, 2] *= scalar 
+        mesh.points[:, 2] *= scalar
 
         # Обрезка по срезам
         actnum = mesh["ACTNUM"][::6]
         actnum = actnum.reshape((self.NX, self.NY, self.NZ), order="F")
         result_actnum = np.zeros_like(actnum)
-      
+
         result_actnum[slice_x, :, :] = actnum[slice_x, :, :]
-       
+
         result_actnum[:, slice_y, :] = actnum[:, slice_y, :]
         result_actnum = np.repeat(result_actnum.reshape(-1, order="F"), 6)
         mesh["ACTNUM"] = result_actnum
@@ -85,7 +80,6 @@ class GridManager():
         max_elevation = np.amax(elevation)
 
         return [points, polys, elevation, [min_elevation, max_elevation]]
-    
 
 
 vtp_path = 'data/3d_objects/grid.vtp'
@@ -97,7 +91,6 @@ Grid_Manager = GridManager(directory_path, grid_name, vtp_path)
 Grid_Manager.create_mesh(vtp_path)
 
 points, polys, elevation, color_range = [], [], [], [0, 1]
-
 
 
 # Setup VTK rendering of PointCloud
@@ -149,21 +142,69 @@ vtk_view = dash_vtk.View(
     ],
 )
 
+# @app.callback(
+#     Output('user-message', 'children'),
+#     Input('url', 'search')
+# )
+# def update_message(search):
+#     print(search)
+#     token = None
+#     # Если query string содержит параметр 'token', сохраняем его
+#     if search:
+#         params = dict(x.split('=') for x in search[1:].split('&'))
+#         token = params.get('token', None)
+#     if token:
+#         return f"Token received: {token}"
+#     else:
+#         # Попытаться получить токен из localStorage через JavaScript
+#         return "No token found."
+
+app.clientside_callback(
+    """
+    function(url) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        if (token) {
+            // Сохраняем токен в localStorage
+            localStorage.setItem('user_token', token);
+            return token;  // Отображаем токен на фронте (например, в LEDDisplay)
+        }
+        return localStorage.getItem('user_token');  // Если токен уже сохранен в localStorage
+    }
+    """,
+    Input('url', 'search')  # Когда URL изменяется, выполняется этот callback
+)
+
+# Клиентский колбек для извлечения токена из localStorage
+app.clientside_callback(
+    """
+    function() {
+        // Извлекаем токен из localStorage
+        const token = localStorage.getItem('user_token');
+        return token || null;  // Возвращаем токен или null, если его нет
+    }
+    """,
+    Output('stored-token', 'data'),  # Сохраняем токен в dcc.Store
+    Input('url', 'pathname')  # Триггер — любой переход на страницу
+)
 
 app.layout = dbc.Container(
     fluid=True,
     style={"height": "100vh", "padding": "10px"},
     children=[
         # Хранилище для фильтров
-        dcc.Store(id="store-filters", data={
-            "scale_factor": 20,
-            "preset": "erdc_rainbow_bright",
-            "property": "PORO",
-            "x_slices": [i for i in range(Grid_Manager.NX)],
-            "y_slices": [i for i in range(Grid_Manager.NY)],
-            "show_cube_axes": [],
-            "edge_visibility": []
-        }),
+        dcc.Store(id="store-filters",
+                  data={
+                      "scale_factor": 20,
+                      "preset": "erdc_rainbow_bright",
+                      "property": "PORO",
+                      "x_slices": [i for i in range(Grid_Manager.NX)],
+                      "y_slices": [i for i in range(Grid_Manager.NY)],
+                      "show_cube_axes": [],
+                      "edge_visibility": []
+                  }),
+        dcc.Store(id='stored-token'),  # Скрытый компонент для хранения токена
+        dcc.Location(id='url', refresh=False),  # Отслеживаем URL
         dbc.Row(
             [
                 # Основная область с визуализацией
@@ -173,7 +214,8 @@ app.layout = dbc.Container(
                             dbc.CardBody(
                                 html.Div(
                                     vtk_view,
-                                    style={"height": "100%", "width": "100%", "overflow": "hidden"},
+                                    style={"height": "100%",
+                                           "width": "100%", "overflow": "hidden"},
                                 ),
                                 style={"height": "85vh"},
                             ),
@@ -199,19 +241,24 @@ app.layout = dbc.Container(
                                                         max=100,
                                                         step=1,
                                                         value=20,
-                                                        marks={1: "1", 50: "50", 100: "100"},
+                                                        marks={
+                                                            1: "1", 50: "50", 100: "100"},
                                                     ),
-                                                    html.Label("Цвет:", className="mt-3"),
+                                                    html.Label(
+                                                        "Цвет:", className="mt-3"),
                                                     dcc.Dropdown(
                                                         id="dropdown-preset",
-                                                        options=list(map(toDropOption, presets)),
+                                                        options=list(
+                                                            map(toDropOption, presets)),
                                                         value="erdc_rainbow_bright",
                                                     ),
-                                                    html.Label("Свойство:", className="mt-3"),
+                                                    html.Label(
+                                                        "Свойство:", className="mt-3"),
                                                     dcc.Dropdown(
                                                         id="dropdown-property",
                                                         options=[
-                                                            {"label": key, "value": key}
+                                                            {"label": key,
+                                                                "value": key}
                                                             for key in Grid_Manager.properties
                                                             if key != "ACTNUM"
                                                         ],
@@ -220,16 +267,20 @@ app.layout = dbc.Container(
                                                     ),
                                                     dcc.Checklist(
                                                         id="toggle-cube-axes",
-                                                        options=[{"label": " Отображать оси", "value": "grid"}],
+                                                        options=[
+                                                            {"label": " Отображать оси", "value": "grid"}],
                                                         value=[],
-                                                        labelStyle={"display": "inline-block"},
+                                                        labelStyle={
+                                                            "display": "inline-block"},
                                                         className="mt-3",
                                                     ),
                                                     dcc.Checklist(
                                                         id="toggle-edge-visibility",
-                                                        options=[{"label": " Отображать грани", "value": "edges"}],
+                                                        options=[
+                                                            {"label": " Отображать грани", "value": "edges"}],
                                                         value=[],
-                                                        labelStyle={"display": "inline-block"},
+                                                        labelStyle={
+                                                            "display": "inline-block"},
                                                         className="mt-3",
                                                     ),
                                                 ]
@@ -246,10 +297,12 @@ app.layout = dbc.Container(
                                                     dcc.Checklist(
                                                         id="x-slices",
                                                         options=[
-                                                            {"label": str(i), "value": i}
+                                                            {"label": str(
+                                                                i), "value": i}
                                                             for i in range(Grid_Manager.NX)
                                                         ],
-                                                        value=[i for i in range(Grid_Manager.NX)],
+                                                        value=[i for i in range(
+                                                            Grid_Manager.NX)],
                                                         inline=True,
                                                     ),
                                                     dbc.Button(
@@ -257,19 +310,22 @@ app.layout = dbc.Container(
                                                         id="select-all-x",
                                                         color="primary",
                                                         size="sm",
-                                                        style={"margin-right": "5px", "margin-top": "10px"},
+                                                        style={
+                                                            "margin-right": "5px", "margin-top": "10px"},
                                                     ),
                                                     dbc.Button(
                                                         "Снять все",
                                                         id="deselect-all-x",
                                                         color="secondary",
                                                         size="sm",
-                                                        style={"margin-top": "10px"},
+                                                        style={
+                                                            "margin-top": "10px"},
                                                     ),
                                                 ]
                                             ),
                                         ],
-                                        style={"margin-bottom": "15px", "background": "#f8f9fa"},
+                                        style={"margin-bottom": "15px",
+                                               "background": "#f8f9fa"},
                                     ),
                                     # Управление Y-срезами
                                     dbc.Card(
@@ -280,10 +336,12 @@ app.layout = dbc.Container(
                                                     dcc.Checklist(
                                                         id="y-slices",
                                                         options=[
-                                                            {"label": str(i), "value": i}
+                                                            {"label": str(
+                                                                i), "value": i}
                                                             for i in range(Grid_Manager.NY-1)
                                                         ],
-                                                        value=[i for i in range(Grid_Manager.NY-1)],
+                                                        value=[i for i in range(
+                                                            Grid_Manager.NY-1)],
                                                         inline=True,
                                                     ),
                                                     dbc.Button(
@@ -291,14 +349,16 @@ app.layout = dbc.Container(
                                                         id="select-all-y",
                                                         color="primary",
                                                         size="sm",
-                                                        style={"margin-right": "5px", "margin-top": "10px"},
+                                                        style={
+                                                            "margin-right": "5px", "margin-top": "10px"},
                                                     ),
                                                     dbc.Button(
                                                         "Снять все",
                                                         id="deselect-all-y",
                                                         color="secondary",
                                                         size="sm",
-                                                        style={"margin-top": "10px"},
+                                                        style={
+                                                            "margin-top": "10px"},
                                                     ),
                                                 ]
                                             ),
@@ -354,11 +414,12 @@ app.layout = dbc.Container(
         Input("deselect-all-x", "n_clicks"),
         Input("select-all-y", "n_clicks"),
         Input("deselect-all-y", "n_clicks"),
+        Input('stored-token', 'data')
     ],
 )
-def manage_slices(select_x, deselect_x, select_y, deselect_y):
+def manage_slices(select_x, deselect_x, select_y, deselect_y, token):
+    print(token)
     ctx = dash.callback_context
-
     if not ctx.triggered:
         return dash.no_update, dash.no_update
 
@@ -376,7 +437,6 @@ def manage_slices(select_x, deselect_x, select_y, deselect_y):
     return dash.no_update, dash.no_update
 
 
-
 @app.callback(
     [
         Output("vtk-representation", "showCubeAxes"),
@@ -392,17 +452,19 @@ def manage_slices(select_x, deselect_x, select_y, deselect_y):
         Input("apply-filters", "n_clicks"),
     ],
     [
+        State('stored-token', 'data'),
         State("dropdown-preset", "value"),
         State("scale-factor", "value"),
         State("dropdown-property", "value"),
         State("x-slices", "value"),
         State("y-slices", "value"),
         State("toggle-cube-axes", "value"),
-        State("toggle-edge-visibility", "value"),
+        State("toggle-edge-visibility", "value")
     ],
 )
-def update_vtk(n_clicks, preset, scale_factor, prop, x_slices, y_slices, cube_axes, edge_visibility):
+def update_vtk(n_clicks, token, preset, scale_factor, prop, x_slices, y_slices, cube_axes, edge_visibility):
     # Обновление данных только после нажатия кнопки "Применить"
+    print(token)
     if n_clicks is None:
         raise dash.exceptions.PreventUpdate
 
@@ -422,9 +484,7 @@ def update_vtk(n_clicks, preset, scale_factor, prop, x_slices, y_slices, cube_ax
     ]
 
 
-
-
 if __name__ == "__main__":
     # url =  'http://127.0.0.1:8050/'
-    # webbrowser.open(url, new=2, autoraise=True)  
-    app.run_server(debug=False)
+    # webbrowser.open(url, new=2, autoraise=True)
+    app.run_server(debug=True)
