@@ -9,7 +9,7 @@ from ecl.eclfile import EclFile
 from ecl.grid import EclGrid
 
 
-def read_tNav_result(smsspec_path: str, unsmry_path: str) -> pd.DataFrame:
+def read_hdm_result(smsspec_path: str, unsmry_path: str) -> pd.DataFrame:
     return EclSum.load(smsspec_path, unsmry_path).pandas_frame().to_dict('dict')
 
 
@@ -24,7 +24,7 @@ def parse(smspec_file, unsmry_file) -> pd.DataFrame:
         with open(unsmry_file_path, "wb") as buffer:
             shutil.copyfileobj(unsmry_file, buffer)
 
-        df_json = read_tNav_result(smspec_file_path, unsmry_file_path)
+        df_json = read_hdm_result(smspec_file_path, unsmry_file_path)
         for k in df_json.keys():
             df_json[k] = [round(float(i),2) for i in list(df_json[k].values())]
         return df_json

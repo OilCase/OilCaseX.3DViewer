@@ -2,3 +2,6 @@ dash
 dash_vtk
 dash_bootstrap_components
 pyvista
+ecl
+cwrap
+pandas
