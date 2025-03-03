@@ -1,2 +1,5 @@
 *.pyc
+*.vtp
+*.vtu
+*.zip
 venv

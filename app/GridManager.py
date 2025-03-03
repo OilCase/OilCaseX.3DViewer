@@ -1,6 +1,6 @@
 import os
-import time
-from typing import List
+from random import random
+from typing import Any, List, Optional
 
 from vtk.util.numpy_support import vtk_to_numpy
 import numpy as np
@@ -15,42 +15,64 @@ class GridManager():
         self.api = OilCaseXApi(url)
         pass
 
-    def GetNX(self, token: str, property: str) -> List[int]:
-        print('GetNX', token, property)
-        available_lines = [l for l in  self.api.GetAvailableLines(token) if l.PropertName == property]
+    def GetAvailableDateLines(self, token: str, target_property: str, order_number: int) -> Optional[AvailableDatesDTO]:
+        print('GetAvailableDateLines', token, target_property, order_number)
 
-        result = available_lines[0].X if available_lines else []
-        return result
-        
+        available_properties = [p for p in self.api.GetAvailableProperties(
+            token) if p.HDMName == target_property]
 
-    def GetNY(self, token: str, property: str) -> List[int]:
-        print('GetNY', token, property)
-        available_lines = [l for l in  self.api.GetAvailableLines(token) if l.PropertName == property]
+        if len(available_properties) == 0:
+            return None
 
-        result = available_lines[0].Y if available_lines else []
-        return result
-        
+        available_property = available_properties[0]
+
+        available_dates = [
+            d for d in available_property.AvailableDates if d.OrderNUmber == order_number]
+        available_date = available_dates[0] if available_dates else None
+
+        return available_date
+
+    def GetNX(self, token: str, target_property: str, order_number: date) -> List[int]:
+        available_date = self.GetAvailableDateLines(
+            token, target_property, order_number)
+        available_lines = available_date.X if available_date else []
+
+        return available_lines
+
+    def GetNY(self, token: str, target_property: str, target_date: date) -> List[int]:
+        available_date = self.GetAvailableDateLines(
+            token, target_property, target_date)
+        available_lines = available_date.Y if available_date else []
+
+        return available_lines
+
+    def GetAvailableDates(self, token, target_property) -> List[AvailableDatesDTO]:
+        print('GetAvailableDates', token, target_property)
+
+        properties = self.api.GetAvailableProperties(token)
+        available_property = [
+            p.AvailableDates for p in properties if p.HDMName == target_property
+        ]
+
+        available_dates = available_property[0] if available_property else []
+
+        return available_dates
 
     def GetProperties(self, token) -> List[AvailablePropertyDTO]:
         print(token)
         available_properties = self.api.GetAvailableProperties(token)
         return available_properties
 
-    def update_grid_geometry(self, prop, scalar=20, slice_x=None, slice_y=None, token=None):
-        print(token, prop)
+    def update_grid_geometry(self, property_name, scalar=20, slice_x=None, slice_y=None, token=None):
+        print(token, property_name)
 
-        vtp_path = os.path.join('data/3d_objects', f'grid.vtp')
-        if (os.path.exists(vtp_path) is False):
-            vtp_path = self.api.GetVtpFile(token)
+        mesh, nx, ny, nz = self.read_mesh(token)
 
-        nx, ny, nz = 69, 50, 75
-
-        mesh = pv.read(vtp_path).extract_geometry()
         mesh.points[:, 2] *= scalar
 
         # Обрезка по срезам
         actnum_base = mesh["ACTNUM"][::6]
-        
+
         actnum = actnum_base.reshape((nx, ny, nz), order="F")
 
         result_actnum = np.zeros_like(actnum)
@@ -65,21 +87,25 @@ class GridManager():
         points = mesh.points.ravel()
         polys = vtk_to_numpy(mesh.GetPolys().GetData())
 
-        prop_data = self.api.GetProps(token, prop)
-        prop_data.reverse()
+        # в mesh находятся статичсекие свойства которы никогда не меняються 
+        # Если их нет обращаеся в unrst файл
+        try:
+            result_prop = mesh[property_name][::6]
+        except:
+            prop_data = self.api.GetDynamicProps(token, property_name)
+            prop_data.reverse()
 
-        prop_data_normalize = [prop_data.pop() if i else None for i in actnum_base]
+            prop_data_normalize = [prop_data.pop() if i else None for i in actnum_base]
 
-        result_prop_full = np.array(prop_data_normalize).reshape((nx, ny, nz), order="F")
+            result_prop_full = np.array(prop_data_normalize).reshape((nx, ny, nz), order="F")
 
-        result_prop = result_prop_full.copy()
-        
-        result_prop[:, :, :] = None
+            result_prop = np.zeros_like(result_prop_full)
 
-        result_prop[slice_x, :, :] = result_prop_full[slice_x, :, :]
-        result_prop[:, slice_y, :] = result_prop_full[:, slice_y, :]
+            result_prop[slice_x, :, :] = result_prop_full[slice_x, :, :]
+            result_prop[:, slice_y, :] = result_prop_full[:, slice_y, :]
 
-        result_prop = [i for i in result_prop.reshape(-1, order="F") if i != None]
+            result_prop = [i for i in result_prop.reshape(-1, order="F") if i != None]
+
         elevation = np.repeat(result_prop, 8)
 
         min_elevation = np.amin(elevation)
@@ -87,3 +113,16 @@ class GridManager():
 
         return [points, polys, elevation, [min_elevation, max_elevation]]
 
+    def read_mesh(self, token) -> Tuple[Any, int, int, int]:
+        model_name = f'{int(random() * 1_000_000)}'
+        
+        vtp_path = f'{model_name}.vtp'
+        vtu_path = f'{model_name}.vtu'
+        
+        nx, ny, nz = self.api.GetVtpFile(token, vtp_path)
+        mesh = pv.read(vtp_path).extract_geometry()
+        
+        os.remove(vtp_path)
+        os.remove(vtu_path)
+
+        return (mesh, nx, ny, nz)

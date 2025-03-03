@@ -10,38 +10,33 @@ from app.GridManager import GridManager
 # Callback для обновления опций Dropdown свойств
 def add_dropdown_properties_callback(app: dash.Dash, grid_manager: GridManager):
     @app.callback(
-        Output('dropdown-property', 'options'),
         [
-            Input('stored-token', 'data')
-        ]
-    )
-    def update_dropdown_options(token):
-        # Здесь можно сделать запрос к бэкенду для получения данных
-        values = [{'label': opt.PropertKey, 'value': opt.PropertName}
-                  for opt in grid_manager.GetProperties(token)]
-        return values
-
-
-def add_checkbox_slices_options_callback(app: dash.Dash, grid_manager: GridManager):
-    @app.callback(
-        [
+            Output('dropdown-property', 'options'),
+            Output('dropdown-date', 'options'),
             Output("x-slices", "options"),
             Output("y-slices", "options"),
         ],
         [
             Input('stored-token', 'data'),
-            Input("dropdown-property", "value"),
-        ],
+            Input('dropdown-property', 'value'),
+            Input("dropdown-date", "value"),
+        ]
     )
-    def create_slices(token, property):
-        print('create_slices', token, property)
+    def update_dropdown_options(token, selected_property, selected_date):
+        # Здесь можно сделать запрос к бэкенду для получения данных
+        values = [{'label': opt.PropertyDescription, 'value': opt.HDMName}
+                  for opt in grid_manager.GetProperties(token)]
 
-        x_slices = [{'label': opt, 'value': opt}
-                    for opt in grid_manager.GetNX(token, property)]
-        y_slices = [{'label': opt, 'value': opt}
-                    for opt in grid_manager.GetNY(token, property)]
+        available_dates = [{'label': str(available_date.Date), 'value': available_date.OrderNUmber}
+                           for available_date in grid_manager.GetAvailableDates(token, selected_property)]
+        
+        x_slices = [{'label': opt + 1, 'value': opt}
+                    for opt in grid_manager.GetNX(token, selected_property, selected_date)]
+        y_slices = [{'label': opt + 1, 'value': opt}
+                    for opt in grid_manager.GetNY(token, selected_property, selected_date)]
 
-        return x_slices, y_slices
+        return [values, available_dates, x_slices, y_slices]
+    
 
 
 def add_checkbox_slices_mange_callback(app: dash.Dash, grid_manager: GridManager):
@@ -57,9 +52,10 @@ def add_checkbox_slices_mange_callback(app: dash.Dash, grid_manager: GridManager
             Input("deselect-all-y", "n_clicks"),
             Input('stored-token', 'data'),
             Input("dropdown-property", "value"),
+            Input("dropdown-date", "value"),
         ],
     )
-    def manage_slices(select_x, deselect_x, select_y, deselect_y, token, property):
+    def manage_slices(select_x, deselect_x, select_y, deselect_y, token, target_property, target_order_number):
         ctx = dash.callback_context
         if not ctx.triggered:
             return dash.no_update, dash.no_update
@@ -67,13 +63,13 @@ def add_checkbox_slices_mange_callback(app: dash.Dash, grid_manager: GridManager
         triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
         if triggered_id == "select-all-x":
-            return grid_manager.GetNX(token, property), dash.no_update
+            return grid_manager.GetNX(token, target_property, target_order_number), dash.no_update
 
         elif triggered_id == "deselect-all-x":
             return [], dash.no_update
 
         elif triggered_id == "select-all-y":
-            return dash.no_update, grid_manager.GetNY(token, property)
+            return dash.no_update, grid_manager.GetNY(token, target_property, target_order_number)
 
         elif triggered_id == "deselect-all-y":
             return dash.no_update, []
@@ -118,7 +114,7 @@ def add_vtk_mange_callback(app: dash.Dash, grid_manager: GridManager):
         points, polys, elevation, color_range = [], None, None, []
         try:
             points, polys, elevation, color_range = grid_manager.update_grid_geometry(
-                prop=prop,
+                property_name=prop,
                 scalar=scale_factor,
                 slice_x=x_slices,
                 slice_y=y_slices,
@@ -126,24 +122,24 @@ def add_vtk_mange_callback(app: dash.Dash, grid_manager: GridManager):
             )
         except Exception as e:
             print(e)
+            print(e.with_traceback())
             pass
-        
+
         return [
-                False,
-                False,
-                "grid" in cube_axes,
-                preset,
-                color_range,
-                {"edgeVisibility": "edges" in edge_visibility},
-                points,
-                polys,
-                elevation,
-                random.random(),
-            ]
-        
-            
+            False,
+            False,
+            "grid" in cube_axes,
+            preset,
+            color_range,
+            {"edgeVisibility": "edges" in edge_visibility},
+            points,
+            polys,
+            elevation,
+            random.random(),
+        ]
 
     # Callback для блокировки кнопки во время выполнения
+
     @app.callback(
         [
             Output('apply-filters', 'disabled', allow_duplicate=True)

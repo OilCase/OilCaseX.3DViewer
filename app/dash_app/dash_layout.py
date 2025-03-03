@@ -47,16 +47,21 @@ def get_dbc_visualize_settings():
                         marks={
                             1: "1", 50: "50", 100: "100"},
                     ),
-                    html.Label(
-                        "Цвет:", className="mt-3"),
+                    html.Label("Цвет:", className="mt-3"),
                     dcc.Dropdown(
                         id="dropdown-preset",
                         options=list(
                             map(toDropOption, presets)),
                         value="erdc_rainbow_bright",
                     ),
-                    html.Label(
-                        "Свойство:", className="mt-3"),
+                    html.Label("Двтв:", className="mt-3"),
+                    dcc.Dropdown(
+                        id="dropdown-date",
+                        options=[],
+                        value="",
+                        placeholder="Выберите дату",
+                    ),
+                    html.Label("Свойство:", className="mt-3"),
                     dcc.Dropdown(
                         id="dropdown-property",
                         options=[],

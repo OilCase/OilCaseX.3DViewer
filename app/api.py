@@ -1,101 +1,154 @@
 
 from dataclasses import dataclass
-from typing import List
+from datetime import date
+import os
+import shutil
+import tempfile
+from typing import List, Optional, Tuple
+import zipfile
 
 from app.create_vtp import create_vtp
 from app.get_property import get_property
 
 
 @dataclass
-class AvailableLineDTO:
-    PropertName: List[int]
+class AvailableDatesDTO:
+    Date: date
+    OrderNUmber: int
     X: List[int]
     Y: List[int]
 
 
 @dataclass
 class AvailablePropertyDTO:
-    PropertName: str
-    PropertKey: str
+    HDMName: str
+    PropertyDescription: str
+    AvailableDates: List[AvailableDatesDTO]
+    IsDynamic: bool
+
+@dataclass
+class HDMInfo:
+    UnrstLink: str
+    HDMProjectArchiveLink: str
+    VTPFileLink: Optional[str]
+
+    ModelXSize: int
+    ModelYSize: int
+    ModelZSize: int
 
 
 class OilCaseXApi:
     def __init__(self, base_url):
         self.BaseUrl = base_url
 
-    def GetAvailableLines(self, token: str) -> List[AvailableLineDTO]:
-        return [
-            AvailableLineDTO('PORO', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('PERMX', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('PERMY', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('SOIL', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('TNAVHEAD', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('SEQNUM', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('INTEHEAD', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('LOGIHEAD', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('DOUBHEAD', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('IGRP', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('IWEL', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('SWEL', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('XWEL', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('ZWEL', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('ICON', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('SCON', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('XCON', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('TNACTGRD', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('STARTSOL', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('PRESSURE', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('RS', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('SGAS', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('SOIL', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('SWAT', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('RFIPOIL', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('RFIPWAT', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('RFIPGAS', list(range(1, 69)), list(range(1, 50))),
-            AvailableLineDTO('ENDSOL', list(range(1, 69)), list(range(1, 50)))
-        ]
-
     def GetAvailableProperties(self, token) -> List[AvailablePropertyDTO]:
+        availableDate1 = AvailableDatesDTO(
+            date(2026, 5, 13),
+            0,
+            [1, 2, 5, 6, 7],
+            [1, 2, 5, 15, 18]
+        )
+        availableDate2 = AvailableDatesDTO(
+            date(2027, 9, 30),
+            1,
+            [],
+            []
+        )
+        availableDate3 = AvailableDatesDTO(
+            date(2028, 12, 30),
+            2,
+            list(range(0, 69)),
+            list(range(0, 50))
+        )
+
         return [
-            AvailablePropertyDTO('PORO', 'Пористость'),
-            AvailablePropertyDTO('PERMX', 'Проницаемость X'),
-            AvailablePropertyDTO('PERMY', 'Проницаемость Y'),
-            AvailablePropertyDTO('SOIL', "Содержание нефти"),
-            AvailablePropertyDTO('TNAVHEAD', 'TNAVHEAD'),
-            AvailablePropertyDTO('SEQNUM', 'SEQNUM'),
-            AvailablePropertyDTO('INTEHEAD', 'INTEHEAD'),
-            AvailablePropertyDTO('LOGIHEAD', 'LOGIHEAD'),
-            AvailablePropertyDTO('DOUBHEAD', 'DOUBHEAD'),
-            AvailablePropertyDTO('IGRP', 'IGRP'),
-            AvailablePropertyDTO('IWEL', 'IWEL'),
-            AvailablePropertyDTO('SWEL', 'SWEL'),
-            AvailablePropertyDTO('XWEL', 'XWEL'),
-            AvailablePropertyDTO('ZWEL', 'ZWEL'),
-            AvailablePropertyDTO('ICON', 'ICON'),
-            AvailablePropertyDTO('SCON', 'SCON'),
-            AvailablePropertyDTO('XCON', 'XCON'),
-            AvailablePropertyDTO('TNACTGRD', 'TNACTGRD'),
-            AvailablePropertyDTO('STARTSOL', 'STARTSOL'),
-            AvailablePropertyDTO('PRESSURE', 'PRESSURE'),
-            AvailablePropertyDTO('RS', 'RS'),
-            AvailablePropertyDTO('SGAS', 'SGAS'),
-            AvailablePropertyDTO('SOIL', 'SOIL'),
-            AvailablePropertyDTO('SWAT', 'SWAT'),
-            AvailablePropertyDTO('RFIPOIL', 'RFIPOIL'),
-            AvailablePropertyDTO('RFIPWAT', 'RFIPWAT'),
-            AvailablePropertyDTO('RFIPGAS', 'RFIPGAS'),
-            AvailablePropertyDTO('ENDSOL', 'ENDSOL')
+            AvailablePropertyDTO('PRESSURE', 'Пластовое давление',
+                                 [availableDate1, availableDate2, availableDate3],
+                                 True),
+
+            AvailablePropertyDTO('ROIP', 'Остаточные запасы нефти',
+                                 [availableDate1, availableDate2, availableDate3],
+                                 True),
+
+            AvailablePropertyDTO('SOIL', 'Нефтенасыщенность',
+                                 [availableDate1, availableDate2, availableDate3],
+                                 True),
+
+            AvailablePropertyDTO('SGAS', 'Газонасыщенность', [availableDate3], True),
+
+            AvailablePropertyDTO('SWAT', 'Водонасыщенность', [availableDate3], True),
+
+            AvailablePropertyDTO('PORO', 'Пористость', [availableDate3], False),
+
+            AvailablePropertyDTO('PERMX', 'Проницаемость X', [availableDate3], False),
+
+            AvailablePropertyDTO('PERMY', 'Проницаемость Y', [availableDate3], False),
+
+            AvailablePropertyDTO('PERMZ', 'Проницаемость Z', [availableDate3], False),
+
+            AvailablePropertyDTO('SEISMIC', 'Сейсмика', [availableDate1], False),
         ]
 
-    def GetVtpFile(self, token) -> str:
-        print('GetVtpFile')
-        directory_path = 'data/INCLUDE'
-        grid_name = 'DynamicModel'
-        vtp_path = create_vtp(directory_path, grid_name)
-        return vtp_path
 
-    def GetProps(self, token, property_name) -> List[float]:
-        print('GetProps')
-        unrst_path = 'data/DynamicModel.UNRST'
-        data = get_property(unrst_path, property_name)
+    def GetVtpFile(self, token: str, vtp_path: str) -> Tuple[int, int ,int]:
+        """
+        return nx, ny, nz
+        """
+        
+        info = self.GetHDMInfo(token)
+        self.DownloadVtpFile(info.VTPFileLink, vtp_path)
+
+        if not os.path.isfile(vtp_path):
+            with tempfile.TemporaryDirectory() as tmp_properties_directory:
+                self.DownloadHDMArchive(info.HDMProjectArchiveLink, tmp_properties_directory)
+                
+                props = self.GetAvailableProperties(token)
+                static_props = [p.HDMName for p in props if p.IsDynamic is False]
+
+                create_vtp(os.path.join(f'{tmp_properties_directory}', 'INCLUDE'), vtp_path, static_props)
+                self.UploadVtpFile(info.VTPFileLink, vtp_path)
+
+        return (info.ModelXSize, info.ModelYSize, info.ModelZSize)
+
+    def GetDynamicProps(self, token: str, property_name: str) -> List[float]:
+        info = self.GetHDMInfo(token)
+        with tempfile.NamedTemporaryFile('w+') as temp_file:
+            self.UploadUnrstFile(info.UnrstLink, temp_file.name)
+            data = get_property(temp_file.name, property_name)
+
         return data
+
+    def GetHDMInfo(self, token: str) -> HDMInfo:
+        return HDMInfo(
+            '',
+            '',
+            '',
+            69,
+            50,
+            75
+        )
+    
+    def DownloadHDMArchive(self, link: str, directory: str):
+        with zipfile.ZipFile('hdm.zip', 'r') as zip_ref:
+            zip_ref.extractall(directory)
+
+    def DownloadVtpFile(self, link: str, file_path: str):
+        try:
+            shutil.copyfile(r'data/cache/file.vtp', file_path)
+            shutil.copyfile(r'data/cache/file.vtu', file_path.replace('vtp', 'vtu'))
+        except:
+            pass
+
+    def UploadVtpFile(self, link: str, vtp_src: str):
+        dir_cache = r'data/cache'
+        if not os.path.exists(dir_cache):
+            os.mkdir(dir_cache)
+            
+        vtp_trg = rf'{dir_cache}/file.vtp'
+        vtu_trg = rf'{dir_cache}/file.vtu'
+
+        shutil.copyfile(vtp_src, vtp_trg)
+        shutil.copyfile(vtp_src.replace('vtp', 'vtu'), vtu_trg)
+
+    def UploadUnrstFile(self, link: str, file_path: str):
+        shutil.copyfile(r'data/DynamicModel.UNRST', file_path)

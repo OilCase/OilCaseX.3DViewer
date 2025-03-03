@@ -5,3 +5,5 @@ pyvista
 ecl
 cwrap
 pandas
+shapely
+meshio

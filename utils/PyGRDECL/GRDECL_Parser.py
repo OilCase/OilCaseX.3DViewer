@@ -23,7 +23,7 @@ SupportKeyWords=[
     'PERMX' , 'PERMXY', 'PERMXZ', 
     'PERMYX', 'PERMY' , 'PERMYZ', 
     'PERMZX', 'PERMZY', 'PERMZ',
-    'SW_NPSL', 'ACTNUM'
+    'SW_NPSL', 'ACTNUM', 'SEISMIC'
 ]
 
 KeyWordsDatatypes=[#Corrsponding data types
@@ -35,7 +35,7 @@ KeyWordsDatatypes=[#Corrsponding data types
     float,float,float,
     float,float,float,
     float,float,float,
-    float, int
+    float, int, float
 ]
 
 
