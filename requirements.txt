@@ -7,3 +7,5 @@ cwrap
 pandas
 shapely
 meshio
+pydantic
+python-dotenv

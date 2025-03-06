@@ -12,7 +12,9 @@ from app.api.oilcase_x import *
 
 class GridManager():
     def __init__(self):
-        url = 'https://x.oil-case.online'
+        url = os.getenv('OILCASEX_URL')
+        # url = 'https://x.oil-case.online'
+
         self.api = OilCaseXApi(url)
 
     def get_available_date_lines(self, token: str, target_property: str, order_number: int) -> Optional[AvailableDatesDTO]:

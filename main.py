@@ -1,11 +1,11 @@
-import dash
 import dash_bootstrap_components as dbc
 
 from app.services.GridManager import GridManager
-from app.dash_app.back_callbacks import *
-from app.dash_app.clientside_callbacks import *
-from app.dash_app.dash_layout import set_layout
+from app.dash.back_callbacks import *
+from app.dash.clientside_callbacks import *
+from app.dash.dash_layout import set_layout
 
+# Загружаем переменные из файла .env
 grid_manager = GridManager()
 
 app = dash.Dash(
