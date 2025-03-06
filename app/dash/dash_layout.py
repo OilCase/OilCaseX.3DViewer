@@ -13,17 +13,26 @@ def toDropOption(name):
 
 # Основная область с визуализацией
 def get_dbc_visualize():
+
     return dbc.Col(
+
         dbc.Card(
             [
-                dbc.CardBody(
-                    html.Div(
-                        get_vtk_view(),
-                        style={"height": "100%",
-                               "width": "100%", "overflow": "hidden"},
-                    ),
-                    style={"height": "85vh"},
-                ),
+                dcc.Loading(
+                    [
+                        dbc.CardBody(
+                            html.Div(
+                                get_vtk_view(),
+                                style={"height": "100%",
+                                       "width": "100%", "overflow": "hidden"},
+                            ),
+                            id="loading-overlay-output",
+                            style={"height": "85vh"},
+                        )
+                    ],
+                    id="loading",
+                    type="circle"
+                )
             ],
         ),
         md=8,
@@ -183,17 +192,8 @@ def get_dbc_accept_button():
                     className="d-block mx-auto mt-3",
                 ),
                 style={"textAlign": "center"},
-            ),
-            dcc.Loading(
-                id="loading",
-                type="circle",
-                children=html.Div(
-                    id='apply-filters-loader',
-                    style={
-                        "textAlign": "right"
-                    }
-                )
-            ),]
+            )
+        ]
 
     )
 

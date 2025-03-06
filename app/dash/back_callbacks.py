@@ -1,5 +1,4 @@
 import random
-import time
 
 import dash
 from dash.dependencies import Input, Output, State
@@ -29,14 +28,13 @@ def add_dropdown_properties_callback(app: dash.Dash, grid_manager: GridManager):
 
         available_dates = [{'label': str(available_date.Date), 'value': available_date.OrderNUmber}
                            for available_date in grid_manager.get_available_dates(token, selected_property)]
-        
+
         x_slices = [{'label': opt + 1, 'value': opt}
                     for opt in grid_manager.get_NX(token, selected_property, selected_date)]
         y_slices = [{'label': opt + 1, 'value': opt}
                     for opt in grid_manager.get_NY(token, selected_property, selected_date)]
 
         return [values, available_dates, x_slices, y_slices]
-    
 
 
 def add_checkbox_slices_mange_callback(app: dash.Dash, grid_manager: GridManager):
@@ -81,8 +79,6 @@ def add_vtk_mange_callback(app: dash.Dash, grid_manager: GridManager):
     # Callback для отображения выбранного значения
     @app.callback(
         [
-            Output('apply-filters', 'disabled'),
-            Output('apply-filters-loader', 'children'),
             Output("vtk-representation", "showCubeAxes"),
             Output("vtk-representation", "colorMapPreset"),
             Output("vtk-representation", "colorDataRange"),
@@ -91,6 +87,7 @@ def add_vtk_mange_callback(app: dash.Dash, grid_manager: GridManager):
             Output("vtk-polydata", "polys"),
             Output("vtk-array", "values"),
             Output("vtk-view", "triggerResetCamera"),
+            Output("loading-overlay-output", "children"),
         ],
         [
             Input("apply-filters", "n_clicks"),
@@ -104,6 +101,9 @@ def add_vtk_mange_callback(app: dash.Dash, grid_manager: GridManager):
             State("y-slices", "value"),
             State("toggle-cube-axes", "value"),
             State("toggle-edge-visibility", "value")
+        ],
+        running=[      
+            (Output("apply-filters", "disabled"), True, False),
         ],
     )
     def update_vtk(n_clicks, token, preset, scale_factor, prop, x_slices, y_slices, cube_axes, edge_visibility):
@@ -126,8 +126,6 @@ def add_vtk_mange_callback(app: dash.Dash, grid_manager: GridManager):
             pass
 
         return [
-            False,
-            False,
             "grid" in cube_axes,
             preset,
             color_range,
@@ -136,19 +134,19 @@ def add_vtk_mange_callback(app: dash.Dash, grid_manager: GridManager):
             polys,
             elevation,
             random.random(),
+            dash.no_update
         ]
 
-    # Callback для блокировки кнопки во время выполнения
-
-    @app.callback(
-        [
-            Output('apply-filters', 'disabled', allow_duplicate=True)
-        ],
-        [
-            Input('apply-filters', 'n_clicks')
-        ],
-        prevent_initial_call=True,
-    )
-    def disable_button(n_clicks):
-        print('asdasdasd')
-        return [True]
+    # # Callback для блокировки кнопки во время выполнения
+    # @app.callback(
+    #     [
+    #         Output('apply-filters', 'disabled', allow_duplicate=True)
+    #     ],
+    #     [
+    #         Input('apply-filters', 'n_clicks')
+    #     ],
+    #     prevent_initial_call=True,
+    # )
+    # def disable_button(n_clicks):
+    #     print('asdasdasd')
+    #     return [True]

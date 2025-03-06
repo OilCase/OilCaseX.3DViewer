@@ -1,8 +1,6 @@
-
 from dataclasses import dataclass
 from datetime import date
 import os
-import shutil
 import tempfile
 from typing import List, Optional, Tuple
 from urllib.parse import urljoin
@@ -29,6 +27,7 @@ class AvailablePropertyDTO():
     IsDynamic: bool
     AvailableDates: List[AvailableDatesDTO]
 
+
 @dataclass
 class FieldPropertyDTO():
     FieldPropertyId: int
@@ -54,7 +53,8 @@ class HDMInfo():
 
 class OilCaseXApi:
     def __init__(self, base_url):
-       self.BaseUrl = base_url
+        self.BaseUrl = base_url
+        self.data = None
 
     def headers(self, token: str):
         return {
@@ -79,28 +79,36 @@ class OilCaseXApi:
             files: List[(str file_key, str file_path)]
         """
 
-        files = {file_key: (os.path.basename(file_path), open(
-            file_path, 'rb'), 'multipart/form-data') for (file_key, file_path) in file_info}
+        files = {
+            file_key: (
+                os.path.basename(file_path),
+                open(file_path, 'rb'),
+                'multipart/form-data'
+            )
+            for (file_key, file_path) in file_info
+        }
 
         full_url = urljoin(self.BaseUrl, sub_url)
-        response = requests.post(
-            full_url, headers=self.headers(token), files=files)
+        headers=self.headers(token)
+        headers.pop('Content-Type')
+
+        response = requests.post(full_url, headers=headers, files=files)
+
         return response
-    
-    def get_all_properties(self, token) -> List[AvailablePropertyDTO]:
+
+    def get_all_properties(self, token) -> List[FieldPropertyDTO]:
         data = self.get(token, 'Api/V1/Purchased/ModelProperty')
 
         data_content = [
-            AvailablePropertyDTO(
+            FieldPropertyDTO(
                 f['fieldPropertyId'],
                 f['fieldPropertyName'],
                 f['isDynamic'],
-                f['HDMName'],
+                f['hdmName'],
             )
             for f in data.json()]
-        
+
         return data_content
-   
 
     def get_available_properties(self, token) -> List[AvailablePropertyDTO]:
         data = self.get(token, 'Api/V1/Purchased/ModelProperty/Available')
@@ -122,7 +130,6 @@ class OilCaseXApi:
             )
             for f in json_data]
         return data_content
-  
 
     def get_vtp_vtu_file(self, token: str, vtp_path: str, vtu_path) -> Tuple[int, int, int]:
         """
@@ -130,9 +137,11 @@ class OilCaseXApi:
         """
 
         info = self.get_hdm_info(token)
-        if (info.VTPFileLink is not None):
-            self.download_vtp_file(info.VTPFileLink, vtp_path,
-                                info.VTPFileLink, vtu_path)
+        if info.VTPFileLink is not None:
+            self.download_vtp_vtu_file(
+                info.VTPFileLink, vtp_path,
+                info.VTPFileLink, vtu_path
+            )
 
         if not os.path.isfile(vtp_path):
             with tempfile.TemporaryDirectory() as tmp_properties_directory:
@@ -140,20 +149,25 @@ class OilCaseXApi:
                     info.HDMProjectArchiveLink, tmp_properties_directory)
 
                 props = self.get_all_properties(token)
-                static_props = [p.HDMName for p in props if p.IsDynamic is False]
+                static_props = [
+                    p.HDMName for p in props if p.IsDynamic is False]
 
-                create_vtp(os.path.join(f'{tmp_properties_directory}', 'INCLUDE'), vtp_path, static_props)
-                self.upload_vtp_file(info.VTPFileLink, vtp_path)
+                create_vtp(os.path.join(
+                    f'{tmp_properties_directory}', 'INCLUDE'), vtp_path, static_props)
+                self.upload_vtp_vtu_file(token, vtp_path, vtu_path)
 
         return (info.ModelXSize, info.ModelYSize, info.ModelZSize)
 
     def get_dynamic_props(self, token: str, property_name: str) -> List[float]:
+        if self.data is not None:
+            return self.data
+        
         info = self.get_hdm_info(token)
         with tempfile.NamedTemporaryFile('w+') as temp_file:
             self.download_unrst_file(info.UnrstLink, temp_file.name)
-            data = get_property(temp_file.name, property_name)
+            self.data = get_property(temp_file.name, property_name)
 
-        return data
+        return self.data
 
     def get_hdm_info(self, token: str) -> HDMInfo:
         hdm_info_data = self.get(token, 'Api/V1/Info/HDM').json()
@@ -167,7 +181,7 @@ class OilCaseXApi:
             hdm_info_data['modelZSize'],
             hdm_info_data['mapXSize'],
             hdm_info_data['mapYSize'],
-            )
+        )
 
         return hdm_info
 
@@ -178,14 +192,13 @@ class OilCaseXApi:
             with zipfile.ZipFile(zip_archive.name, 'r') as zip_ref:
                 zip_ref.extractall(directory)
 
-    def download_vtp_file(self,
-                          vtp_link: str,
-                          vtp_path: str,
-                          vtu_link: str,
-                          vtu_path: str
-                          ):
-      
-        
+    def download_vtp_vtu_file(self,
+                              vtp_link: str,
+                              vtp_path: str,
+                              vtu_link: str,
+                              vtu_path: str
+                              ):
+
         with open(vtp_path, "wb") as file:
             response = requests.get(vtp_link)
             file.write(response.content)
@@ -194,7 +207,7 @@ class OilCaseXApi:
             response = requests.get(vtu_link)
             file.write(response.content)
 
-    def upload_vtp_file(self, token: str, vtp_path: str, vtu_path: str):
+    def upload_vtp_vtu_file(self, token: str, vtp_path: str, vtu_path: str):
         self.upload_files(token, 'Api/V1/Info/HDM/UploadVtpVtu',
                           [('vtp', vtp_path), ('vtu', vtu_path)])
 

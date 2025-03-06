@@ -1,4 +1,3 @@
-import math
 import os
 from random import random
 from typing import Any, List, Optional
@@ -6,12 +5,14 @@ from typing import Any, List, Optional
 from vtk.util.numpy_support import vtk_to_numpy
 import numpy as np
 import pyvista as pv
+from dotenv import load_dotenv
 
 from app.api.oilcase_x import *
 
 
 class GridManager():
     def __init__(self):
+        load_dotenv()
         url = os.getenv('OILCASEX_URL')
         # url = 'https://x.oil-case.online'
 
@@ -135,7 +136,7 @@ class GridManager():
         vtp_path = f'{model_name}.vtp'
         vtu_path = f'{model_name}.vtu'
 
-        nx, ny, nz = self.api.get_vtp_file(token, vtp_path)
+        nx, ny, nz = self.api.get_vtp_vtu_file(token, vtp_path, vtu_path)
         mesh = pv.read(vtp_path).extract_geometry()
 
         os.remove(vtp_path)
