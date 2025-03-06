@@ -1,7 +1,7 @@
 import dash
 import dash_bootstrap_components as dbc
 
-from app.GridManager import GridManager
+from app.services.GridManager import GridManager
 from app.dash_app.back_callbacks import *
 from app.dash_app.clientside_callbacks import *
 from app.dash_app.dash_layout import set_layout
