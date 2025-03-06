@@ -36,12 +36,15 @@ class HDMInfo:
     ModelYSize: int
     ModelZSize: int
 
+    MapXSize: int
+    MapYSize: int
+
 
 class OilCaseXApi:
     def __init__(self, base_url):
         self.BaseUrl = base_url
 
-    def GetAvailableProperties(self, token) -> List[AvailablePropertyDTO]:
+    def get_available_properties(self, token) -> List[AvailablePropertyDTO]:
         availableDate1 = AvailableDatesDTO(
             date(2026, 5, 13),
             0,
@@ -57,8 +60,8 @@ class OilCaseXApi:
         availableDate3 = AvailableDatesDTO(
             date(2028, 12, 30),
             2,
-            list(range(0, 69)),
-            list(range(0, 50))
+            list(range(0, 23)),
+            list(range(0, 17))
         )
 
         return [
@@ -90,56 +93,58 @@ class OilCaseXApi:
         ]
 
 
-    def GetVtpFile(self, token: str, vtp_path: str) -> Tuple[int, int ,int]:
+    def get_vtp_file(self, token: str, vtp_path: str) -> Tuple[int, int ,int]:
         """
         return nx, ny, nz
         """
         
-        info = self.GetHDMInfo(token)
-        self.DownloadVtpFile(info.VTPFileLink, vtp_path)
+        info = self.get_hdm_info(token)
+        self.download_vtp_file(info.VTPFileLink, vtp_path)
 
         if not os.path.isfile(vtp_path):
             with tempfile.TemporaryDirectory() as tmp_properties_directory:
-                self.DownloadHDMArchive(info.HDMProjectArchiveLink, tmp_properties_directory)
+                self.download_hdm_archive(info.HDMProjectArchiveLink, tmp_properties_directory)
                 
-                props = self.GetAvailableProperties(token)
+                props = self.get_available_properties(token)
                 static_props = [p.HDMName for p in props if p.IsDynamic is False]
 
                 create_vtp(os.path.join(f'{tmp_properties_directory}', 'INCLUDE'), vtp_path, static_props)
-                self.UploadVtpFile(info.VTPFileLink, vtp_path)
+                self.upload_vtp_file(info.VTPFileLink, vtp_path)
 
         return (info.ModelXSize, info.ModelYSize, info.ModelZSize)
 
-    def GetDynamicProps(self, token: str, property_name: str) -> List[float]:
-        info = self.GetHDMInfo(token)
+    def get_dynamic_props(self, token: str, property_name: str) -> List[float]:
+        info = self.get_hdm_info(token)
         with tempfile.NamedTemporaryFile('w+') as temp_file:
-            self.UploadUnrstFile(info.UnrstLink, temp_file.name)
+            self.upload_unrst_file(info.UnrstLink, temp_file.name)
             data = get_property(temp_file.name, property_name)
 
         return data
 
-    def GetHDMInfo(self, token: str) -> HDMInfo:
+    def get_hdm_info(self, token: str) -> HDMInfo:
         return HDMInfo(
             '',
             '',
             '',
             69,
             50,
-            75
+            75,
+            23,
+            17
         )
     
-    def DownloadHDMArchive(self, link: str, directory: str):
+    def download_hdm_archive(self, link: str, directory: str):
         with zipfile.ZipFile('hdm.zip', 'r') as zip_ref:
             zip_ref.extractall(directory)
 
-    def DownloadVtpFile(self, link: str, file_path: str):
+    def download_vtp_file(self, link: str, file_path: str):
         try:
             shutil.copyfile(r'data/cache/file.vtp', file_path)
             shutil.copyfile(r'data/cache/file.vtu', file_path.replace('vtp', 'vtu'))
         except:
             pass
 
-    def UploadVtpFile(self, link: str, vtp_src: str):
+    def upload_vtp_file(self, link: str, vtp_src: str):
         dir_cache = r'data/cache'
         if not os.path.exists(dir_cache):
             os.mkdir(dir_cache)
@@ -150,5 +155,5 @@ class OilCaseXApi:
         shutil.copyfile(vtp_src, vtp_trg)
         shutil.copyfile(vtp_src.replace('vtp', 'vtu'), vtu_trg)
 
-    def UploadUnrstFile(self, link: str, file_path: str):
+    def upload_unrst_file(self, link: str, file_path: str):
         shutil.copyfile(r'data/DynamicModel.UNRST', file_path)

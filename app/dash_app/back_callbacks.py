@@ -25,15 +25,15 @@ def add_dropdown_properties_callback(app: dash.Dash, grid_manager: GridManager):
     def update_dropdown_options(token, selected_property, selected_date):
         # Здесь можно сделать запрос к бэкенду для получения данных
         values = [{'label': opt.PropertyDescription, 'value': opt.HDMName}
-                  for opt in grid_manager.GetProperties(token)]
+                  for opt in grid_manager.get_properties(token)]
 
         available_dates = [{'label': str(available_date.Date), 'value': available_date.OrderNUmber}
-                           for available_date in grid_manager.GetAvailableDates(token, selected_property)]
+                           for available_date in grid_manager.get_available_dates(token, selected_property)]
         
         x_slices = [{'label': opt + 1, 'value': opt}
-                    for opt in grid_manager.GetNX(token, selected_property, selected_date)]
+                    for opt in grid_manager.get_NX(token, selected_property, selected_date)]
         y_slices = [{'label': opt + 1, 'value': opt}
-                    for opt in grid_manager.GetNY(token, selected_property, selected_date)]
+                    for opt in grid_manager.get_NY(token, selected_property, selected_date)]
 
         return [values, available_dates, x_slices, y_slices]
     
@@ -63,13 +63,13 @@ def add_checkbox_slices_mange_callback(app: dash.Dash, grid_manager: GridManager
         triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
         if triggered_id == "select-all-x":
-            return grid_manager.GetNX(token, target_property, target_order_number), dash.no_update
+            return grid_manager.get_NX(token, target_property, target_order_number), dash.no_update
 
         elif triggered_id == "deselect-all-x":
             return [], dash.no_update
 
         elif triggered_id == "select-all-y":
-            return dash.no_update, grid_manager.GetNY(token, target_property, target_order_number)
+            return dash.no_update, grid_manager.get_NY(token, target_property, target_order_number)
 
         elif triggered_id == "deselect-all-y":
             return dash.no_update, []

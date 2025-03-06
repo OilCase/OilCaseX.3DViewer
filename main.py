@@ -1,4 +1,3 @@
-import os
 import dash
 import dash_bootstrap_components as dbc
 
@@ -7,16 +6,13 @@ from app.dash_app.back_callbacks import *
 from app.dash_app.clientside_callbacks import *
 from app.dash_app.dash_layout import set_layout
 
-try:
-    os.remove(r'data\grid.vtp')
-except:
-    pass
-
 grid_manager = GridManager()
 
-app = dash.Dash(__name__,
-                external_stylesheets=[dbc.themes.BOOTSTRAP],
-                suppress_callback_exceptions=True)
+app = dash.Dash(
+    __name__,
+    external_stylesheets=[dbc.themes.BOOTSTRAP],
+    suppress_callback_exceptions=True
+)
 
 set_layout(app)
 

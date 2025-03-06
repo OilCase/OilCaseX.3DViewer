@@ -54,7 +54,7 @@ def get_dbc_visualize_settings():
                             map(toDropOption, presets)),
                         value="erdc_rainbow_bright",
                     ),
-                    html.Label("Двтв:", className="mt-3"),
+                    html.Label("Дата:", className="mt-3"),
                     dcc.Dropdown(
                         id="dropdown-date",
                         options=[],
