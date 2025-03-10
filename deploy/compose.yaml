@@ -1,0 +1,7 @@
+services:
+  server:
+    build:
+      context: ../
+      dockerfile: ./deploy/Dockerfile
+    ports:
+      - 8050:8050
