@@ -4,4 +4,4 @@ services:
       context: ../
       dockerfile: ./deploy/Dockerfile
     ports:
-      - 8050:8050
+      - 8081:8050
