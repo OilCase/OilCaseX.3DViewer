@@ -1,0 +1,21 @@
+name: production 3dviewer
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: [W10954]
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
+        token: ${{ secrets.PAT_KOS4V }}
+
+
+    - name: Build and run Docker Compose
+      working-directory: ./deploy
+      run: docker-compose up --build -d
