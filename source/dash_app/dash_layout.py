@@ -24,7 +24,8 @@ def get_dbc_visualize():
                             html.Div(
                                 get_vtk_view(),
                                 style={"height": "100%",
-                                       "width": "100%", "overflow": "hidden"},
+                                       "width": "100%",
+                                       "overflow": "hidden"},
                             ),
                             id="loading-overlay-output",
                             style={"height": "85vh"},
@@ -136,8 +137,10 @@ def get_dbc_x_slices():
                 ]
             ),
         ],
-        style={"margin-bottom": "15px",
-               "background": "#f8f9fa"},
+        style={
+            "margin-bottom": "15px",
+            "background": "#f8f9fa"
+        },
     )
 
 # Управление Y-срезами
@@ -297,7 +300,12 @@ def get_vtk_view():
 def set_layout(app: dash.Dash):
     app.layout = dbc.Container(
         fluid=True,
-        style={"height": "100vh", "padding": "10px"},
+        style={
+            "height": "100vh",
+              "padding": "10px",
+                          "background": "#f0f4f7"
+
+            },
         children=[
 
             # Хранилище для фильтров
