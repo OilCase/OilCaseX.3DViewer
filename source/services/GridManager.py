@@ -30,7 +30,7 @@ class GridManager():
         available_property = available_properties[0]
 
         available_dates = [
-            d for d in available_property.AvailableDates if d.OrderNUmber == order_number
+            d for d in available_property.AvailableDates if d.OrderNumber == order_number
         ]
         available_date = available_dates[0] if available_dates else None
 

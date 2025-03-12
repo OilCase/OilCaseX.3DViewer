@@ -26,7 +26,7 @@ def add_dropdown_properties_callback(app: dash.Dash, grid_manager: GridManager):
         values = [{'label': opt.PropertyDescription, 'value': opt.HDMName}
                   for opt in grid_manager.get_properties(token)]
 
-        available_dates = [{'label': str(available_date.Date), 'value': available_date.OrderNUmber}
+        available_dates = [{'label': str(available_date.Date), 'value': available_date.OrderNumber}
                            for available_date in grid_manager.get_available_dates(token, selected_property)]
 
         x_slices = [{'label': opt + 1, 'value': opt}

@@ -10,12 +10,13 @@ import requests
 
 from utils.create_vtp import create_vtp
 from utils.get_property import get_property_from_unrst
+from utils.retry import retry_with_timeout
 
 
 @dataclass
 class AvailableDatesDTO():
     Date: date
-    OrderNUmber: int
+    OrderNumber: int
     X: List[int]
     Y: List[int]
 
@@ -54,7 +55,6 @@ class HDMInfo():
 class OilCaseXApi:
     def __init__(self, base_url):
         self.BaseUrl = base_url
-        self.data = None
 
     def headers(self, token: str):
         return {
@@ -62,38 +62,47 @@ class OilCaseXApi:
             'Content-Type': 'application/json'
         }
 
-    def get(self, token: str, sub_url: str):
+    @retry_with_timeout(max_retries=3, timeout=10)
+    def get(self, token: str, sub_url: str) -> requests.Response:
         full_url = urljoin(self.BaseUrl, sub_url)
         response = requests.get(full_url, headers=self.headers(token))
+        response.raise_for_status()  # Raises an HTTPError for bad responses
         return response
 
-    def post(self, token: str, sub_url: str, data: dict):
+    @retry_with_timeout(max_retries=3, timeout=10)
+    def post(self, token: str, sub_url: str, data: dict) -> requests.Response:
         full_url = urljoin(self.BaseUrl, sub_url)
         response = requests.post(full_url, headers=self.headers(token), json=data)
-
+        response.raise_for_status()  # Raises an HTTPError for bad responses
         return response
 
+    @retry_with_timeout(max_retries=3, timeout=20)
     def upload_files(self, token: str, sub_url: str, file_info: List[Tuple[str, str]]):
         """
             files: List[(str file_key, str file_path)]
         """
 
-        files = {
-            file_key: (
-                os.path.basename(file_path),
-                open(file_path, 'rb'),
-                'multipart/form-data'
-            )
-            for (file_key, file_path) in file_info
-        }
+        files = {}
+        try:
+            for file_key, file_path in file_info:
+                with open(file_path, 'rb') as f:
+                    files[file_key] = (
+                        os.path.basename(file_path),
+                        f,
+                        'multipart/form-data'
+                    )
 
-        full_url = urljoin(self.BaseUrl, sub_url)
-        headers=self.headers(token)
-        headers.pop('Content-Type')
+            full_url = urljoin(self.BaseUrl, sub_url)
 
-        response = requests.post(full_url, headers=headers, files=files)
-
-        return response
+            response = requests.post(full_url, headers=self.headers(token), files=files)
+            response.raise_for_status()
+            
+            return response
+        finally:
+            # Ensure files are properly closed
+            for file_data in files.values():
+                if hasattr(file_data[1], 'close'):
+                    file_data[1].close()
 
     def get_all_properties(self, token) -> List[FieldPropertyDTO]:
         data = self.get(token, 'Api/V1/Purchased/ModelProperty')
@@ -158,15 +167,12 @@ class OilCaseXApi:
         return (info.ModelXSize, info.ModelYSize, info.ModelZSize)
 
     def get_dynamic_props(self, token: str, property_name: str, step=0) -> List[float]:
-        if self.data is not None:
-            return self.data
-        
         info = self.get_hdm_info(token)
         with tempfile.NamedTemporaryFile('w+') as temp_file:
             self.download_unrst_file(info.UnrstLink, temp_file.name)
-            self.data = get_property_from_unrst(temp_file.name, property_name, step)
+            data = get_property_from_unrst(temp_file.name, property_name, step)
 
-        return self.data
+        return data
 
     def get_hdm_info(self, token: str) -> HDMInfo:
         hdm_info_data = self.get(token, 'Api/V1/Info/HDM').json()
@@ -184,33 +190,37 @@ class OilCaseXApi:
 
         return hdm_info
 
+    @retry_with_timeout(max_retries=3, timeout=120)
     def download_hdm_archive(self, link: str, directory: str):
         response = requests.get(link)
+        response.raise_for_status()
         with tempfile.NamedTemporaryFile('wb') as zip_archive:
             zip_archive.write(response.content)
             with zipfile.ZipFile(zip_archive.name, 'r') as zip_ref:
                 zip_ref.extractall(directory)
 
+    @retry_with_timeout(max_retries=3, timeout=60)
     def download_vtp_vtu_file(self,
                               vtp_link: str,
                               vtp_path: str,
                               vtu_link: str,
                               vtu_path: str
                               ):
-
-        with open(vtp_path, "wb") as file:
-            response = requests.get(vtp_link)
-            file.write(response.content)
-
-        with open(vtu_path, "wb") as file:
-            response = requests.get(vtu_link)
-            file.write(response.content)
+        self.save_file(vtp_link, vtp_path)
+        self.save_file(vtu_link, vtu_path)
 
     def upload_vtp_vtu_file(self, token: str, vtp_path: str, vtu_path: str):
         self.upload_files(token, 'Api/V1/Info/HDM/UploadVtpVtu',
                           [('vtp', vtp_path), ('vtu', vtu_path)])
 
+    @retry_with_timeout(max_retries=3, timeout=60)
     def download_unrst_file(self, unrst_link: str, unrst_path: str):
-        with open(unrst_path, "wb") as file:
-            response = requests.get(unrst_link)
+        self.save_file(unrst_link, unrst_path)
+
+    @retry_with_timeout(max_retries=3, timeout=30)
+    def save_file(self, link: str, path: str):
+        with open(path, "wb") as file:
+            response = requests.get(link)
+            response.raise_for_status()
             file.write(response.content)
+
