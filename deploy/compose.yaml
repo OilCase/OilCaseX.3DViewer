@@ -1,5 +1,5 @@
 services:
-  server:
+  oilcasex-3dviewer:
     build:
       context: ../
       dockerfile: ./deploy/Dockerfile
