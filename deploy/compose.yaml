@@ -1,5 +1,6 @@
 services:
   oilcasex-3dviewer:
+    restart: always
     build:
       context: ../
       dockerfile: ./deploy/Dockerfile
