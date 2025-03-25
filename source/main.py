@@ -14,6 +14,7 @@ app = dash.Dash(
     suppress_callback_exceptions=True
 )
 
+
 set_layout(app)
 
 set_save_token_callback(app)
