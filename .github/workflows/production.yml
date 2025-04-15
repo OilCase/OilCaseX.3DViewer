@@ -2,13 +2,13 @@ name: production 3dviewer
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "hakasia" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "hakasia" ]
 
 jobs:
   build:
-    runs-on: [W10954]
+    runs-on: [virtual-hakasia]
     steps:
     - uses: actions/checkout@v4
       with:

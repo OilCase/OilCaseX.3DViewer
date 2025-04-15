@@ -17,6 +17,6 @@ COPY source .
 
 EXPOSE 8050
 
-ENV OILCASEX_URL=https://x.oil-case.online
+ENV OILCASEX_URL=docker.host.internal:5005
 
 CMD ["gunicorn", "--bind", "0.0.0.0:8050", "--workers", "8", "--threads", "4", "main:server"]
