@@ -1,5 +1,7 @@
 services:
   oilcasex-3dviewer:
+    environment:
+      - OILCASEX_URL=${OILCASEX_URL}
     restart: always
     build:
       context: ../
