@@ -17,6 +17,4 @@ COPY source .
 
 EXPOSE 8050
 
-ENV OILCASEX_URL=${OILCASEX_URL}
-
 CMD ["gunicorn", "--bind", "0.0.0.0:8050", "--workers", "8", "--threads", "4", "main:server"]
