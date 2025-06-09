@@ -18,6 +18,6 @@ jobs:
 
     - name: Build and run Docker Compose
       working-directory: ./deploy
-      run: |
-        $env:OILCASEX_URL="https://x.oil-case.online"
-        docker-compose up --build -d
+      run: docker-compose up --build -d
+      env: 
+        OILCASEX_URL: https://x.oil-case.online
