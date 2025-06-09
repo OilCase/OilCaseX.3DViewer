@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: [ "main" ]
 
-env:
-  OILCASEX_URL: https://x.oil-case.online
-
 jobs:
   build:
     runs-on: [W10954]
@@ -20,5 +17,7 @@ jobs:
 
 
     - name: Build and run Docker Compose
+      env:
+        OILCASEX_URL: https://x.oil-case.online
       working-directory: ./deploy
       run: docker-compose up --build -d
