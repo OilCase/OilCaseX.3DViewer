@@ -56,10 +56,10 @@ class OilCaseXApi:
     def __init__(self, base_url):
         self.BaseUrl = base_url
 
-    def headers(self, token: str):
+    def headers(self, token: str, content_type: str = 'application/json'):
         return {
             'Authorization': f'Bearer {token}',
-            'Content-Type': 'application/json'
+            'Content-Type': content_type
         }
 
     @retry_with_timeout(max_retries=3, timeout=10)
@@ -72,7 +72,8 @@ class OilCaseXApi:
     @retry_with_timeout(max_retries=3, timeout=10)
     def post(self, token: str, sub_url: str, data: dict) -> requests.Response:
         full_url = urljoin(self.BaseUrl, sub_url)
-        response = requests.post(full_url, headers=self.headers(token), json=data)
+        response = requests.post(
+            full_url, headers=self.headers(token), json=data)
         response.raise_for_status()  # Raises an HTTPError for bad responses
         return response
 
@@ -83,26 +84,33 @@ class OilCaseXApi:
         """
 
         files = {}
+        response = None
         try:
-            for file_key, file_path in file_info:
-                with open(file_path, 'rb') as f:
-                    files[file_key] = (
-                        os.path.basename(file_path),
-                        f,
-                        'multipart/form-data'
-                    )
+            files = {
+                file_key: (
+                    os.path.basename(file_path),
+                    open(file_path, 'rb'),
+                    'application/octet-stream'
+                )
+                for file_key, file_path in file_info
+            }
 
             full_url = urljoin(self.BaseUrl, sub_url)
+            headers = self.headers(token, None)
 
-            response = requests.post(full_url, headers=self.headers(token), files=files)
+            response = requests.post(full_url, headers=headers, files=files)
             response.raise_for_status()
-            
+
+            for file in [f[1] for f in files.values() if hasattr(f[1], 'close')]:
+                file.close()
+
             return response
+        except Exception as e:
+            print(e)
         finally:
             # Ensure files are properly closed
-            for file_data in files.values():
-                if hasattr(file_data[1], 'close'):
-                    file_data[1].close()
+            for file in [f[1] for f in files.values() if hasattr(f[1], 'close')]:
+                file.close()
 
     def get_all_properties(self, token) -> List[FieldPropertyDTO]:
         data = self.get(token, 'Api/V1/Purchased/ModelProperty')
@@ -223,4 +231,3 @@ class OilCaseXApi:
             response = requests.get(link)
             response.raise_for_status()
             file.write(response.content)
-

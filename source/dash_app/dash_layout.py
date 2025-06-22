@@ -64,19 +64,19 @@ def get_dbc_visualize_settings():
                             map(toDropOption, presets)),
                         value="erdc_rainbow_bright",
                     ),
-                    html.Label("Дата:", className="mt-3"),
-                    dcc.Dropdown(
-                        id="dropdown-date",
-                        options=[],
-                        value="",
-                        placeholder="Выберите дату",
-                    ),
                     html.Label("Свойство:", className="mt-3"),
                     dcc.Dropdown(
                         id="dropdown-property",
                         options=[],
                         value="",
                         placeholder="Выберите параметр",
+                    ),
+                    html.Label("Дата:", className="mt-3"),
+                    dcc.Dropdown(
+                        id="dropdown-date",
+                        options=[],
+                        value="",
+                        placeholder="Выберите дату",
                     ),
                     dcc.Checklist(
                         id="toggle-cube-axes",

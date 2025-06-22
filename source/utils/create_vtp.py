@@ -1,4 +1,5 @@
 from glob import glob as find_files
+from os import listdir
 from os.path import join as join_path
 from tempfile import NamedTemporaryFile
 from typing import List, Tuple
@@ -18,7 +19,17 @@ def create_vtp(property_direcotry, vtp_path:str, prop_names: List[str]) -> Tuple
     with NamedTemporaryFile('w+') as outfile:
         for file_name in files_are_nedded:
             print(file_name)
-            file_path = find_files(join_path(property_direcotry, f'*{file_name}*'))[0]
+            target_files = find_files(join_path(property_direcotry, f'*{file_name}*'))
+            
+            if (file_name.lower().__contains__('seismic')):
+                target_files += find_files(join_path(property_direcotry, f'*ACTNUM*'))
+
+            if (len(target_files) == 0):
+                files = listdir(property_direcotry)
+                message  = f"Not found {file_name} in {property_direcotry} exists files {files}"
+                raise Exception(message)
+
+            file_path = target_files[0]
 
             with open(file_path) as infile:
                 outfile.write(infile.read().replace('NOECHO', ''))
