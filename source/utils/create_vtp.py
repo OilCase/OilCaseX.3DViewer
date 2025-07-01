@@ -8,7 +8,7 @@ import numpy as np
 from utils.PyGRDECL.GRDECL2VTK import GeologyModel
 
 
-def create_vtp(property_direcotry, vtp_path:str, prop_names: List[str]) -> Tuple[int, int, int]:
+def create_vtp(property_direcotry, vtp_path: str, prop_names: List[str]) -> Tuple[int, int, int]:
     files_are_nedded = [
         "GRID.inc",
         "ACTNUM.inc",
@@ -26,14 +26,15 @@ def create_vtp(property_direcotry, vtp_path:str, prop_names: List[str]) -> Tuple
 
             if (len(target_files) == 0):
                 files = listdir(property_direcotry)
-                message  = f"Not found {file_name} in {property_direcotry} exists files {files}"
+                message = f"Not found {file_name} in {property_direcotry} exists files {files}"
                 raise Exception(message)
 
             file_path = target_files[0]
 
             with open(file_path) as infile:
                 outfile.write(infile.read().replace('NOECHO', ''))
-        
+                
+        outfile.flush()
         model = GeologyModel(filename=outfile.name)
         
         mask = np.where(model.GRDECL_Data.SpatialDatas['PORO'] == 0)
@@ -42,4 +43,4 @@ def create_vtp(property_direcotry, vtp_path:str, prop_names: List[str]) -> Tuple
         model.GRDECL2VTK()
         model.Write2VTP(vtp_path)
         
-        return model.GRDECL_Data.NX, model.GRDECL_Data.NY, model.GRDECL_Data.NZ
+    return model.GRDECL_Data.NX, model.GRDECL_Data.NY, model.GRDECL_Data.NZ
